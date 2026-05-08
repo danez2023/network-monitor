@@ -1,0 +1,172 @@
+{# templates/dashboard.html #}
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+<hr>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Devices</h5>
+                <h2>{{ stats.total }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Devices Up</h5>
+                <h2>{{ stats.up }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Devices Down</h5>
+                <h2>{{ stats.down }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Unknown</h5>
+                <h2>{{ stats.unknown }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="devices-container">
+    {% for device in devices %}
+    <div class="col-md-4 mb-3" data-device-id="{{ device.id }}">
+        <div class="card card-device">
+            <div class="card-body">
+                <h5 class="card-title">
+                    {% if device.last_status == 'up' %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                    {% elif device.last_status == 'down' %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                    {% else %}
+                        <i class="bi bi-question-circle-fill text-warning"></i>
+                    {% endif %}
+                    {{ device.name }}
+                </h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ device.device_type|upper }} | {{ device.check_method|upper }}</h6>
+                <p class="card-text">
+                    <strong>IP:</strong> {{ device.ip_address }}<br>
+                    <strong>Status:</strong> 
+                    <span class="status-{{ device.last_status or 'unknown' }} fw-bold">
+                        {{ (device.last_status or 'unknown').upper() }}
+                    </span><br>
+                    <strong>Response:</strong> 
+                    {% if device.last_response_time %}
+                        {{ "%.2f"|format(device.last_response_time) }} ms
+                    {% else %}
+                        N/A
+                    {% endif %}<br>
+                    <strong>Last Check:</strong> 
+                    {% if device.last_check_time %}
+                        {{ device.last_check_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </p>
+                <button class="btn btn-sm btn-outline-primary" onclick="showHistory({{ device.id }}, '{{ device.name }}')">
+                    <i class="bi bi-graph-up"></i> History
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Device History: <span id="historyDeviceName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <canvas id="historyChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let historyChart = null;
+
+function showHistory(deviceId, deviceName) {
+    $('#historyDeviceName').text(deviceName);
+    $('#historyModal').modal('show');
+    
+    $.get(`/api/device/${deviceId}/history?hours=24`, function(data) {
+        const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+        const statuses = data.map(d => d.status === 'up' ? 1 : 0);
+        
+        if (historyChart) {
+            historyChart.destroy();
+        }
+        
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Status (1=Up, 0=Down)',
+                    data: statuses,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        min: -0.1,
+                        max: 1.1,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value === 1 ? 'Up' : 'Down';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+}
+
+// Auto-refresh every 10 seconds
+setInterval(function() {
+    $.get('/api/status', function(data) {
+        data.devices.forEach(device => {
+            const card = $(`.card[data-device-id="${device.id}"]`);
+            if (card.length) {
+                const statusIcon = device.status === 'up' ? 
+                    '<i class="bi bi-check-circle-fill text-success"></i>' : 
+                    (device.status === 'down' ? '<i class="bi bi-x-circle-fill text-danger"></i>' : 
+                     '<i class="bi bi-question-circle-fill text-warning"></i>');
+                card.find('.card-title').html(`${statusIcon} ${device.name}`);
+                card.find('.status-\\w+').removeClass('status-up status-down status-unknown')
+                    .addClass(`status-${device.status}`).text(device.status.toUpperCase());
+                if (device.response_time) {
+                    card.find('.card-text').html(function(i, html) {
+                        return html.replace(/Response:.*?ms/, `Response: ${device.response_time.toFixed(2)} ms`);
+                    });
+                }
+            }
+        });
+    });
+}, 10000);
+</script>
+{% endblock %}

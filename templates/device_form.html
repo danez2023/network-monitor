@@ -1,0 +1,86 @@
+{# templates/device_form.html #}
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if device else 'Add' }} Device{% endblock %}
+{% block content %}
+<h2><i class="bi bi-hdd-stack"></i> {{ 'Edit' if device else 'Add' }} Device</h2>
+<hr>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">Device Name *</label>
+                <input type="text" class="form-control" id="name" name="name" required value="{{ device.name if device else '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="ip_address" class="form-label">IP Address *</label>
+                <input type="text" class="form-control" id="ip_address" name="ip_address" required value="{{ device.ip_address if device else '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="device_type" class="form-label">Device Type *</label>
+                <select class="form-control" id="device_type" name="device_type" required>
+                    <option value="radio" {% if device and device.device_type == 'radio' %}selected{% endif %}>P2P Radio</option>
+                    <option value="cctv" {% if device and device.device_type == 'cctv' %}selected{% endif %}>CCTV Camera</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="check_method" class="form-label">Check Method *</label>
+                <select class="form-control" id="check_method" name="check_method" required onchange="toggleMethodFields()">
+                    <option value="icmp" {% if device and device.check_method == 'icmp' %}selected{% endif %}>ICMP (Ping)</option>
+                    <option value="tcp" {% if device and device.check_method == 'tcp' %}selected{% endif %}>TCP Port</option>
+                    <option value="http" {% if device and device.check_method == 'http' %}selected{% endif %}>HTTP</option>
+                    <option value="https" {% if device and device.check_method == 'https' %}selected{% endif %}>HTTPS</option>
+                    <option value="snmp" {% if device and device.check_method == 'snmp' %}selected{% endif %}>SNMP</option>
+                </select>
+            </div>
+            
+            <div id="port_field" class="mb-3" style="display: none;">
+                <label for="check_port" class="form-label">Port</label>
+                <input type="number" class="form-control" id="check_port" name="check_port" value="{{ device.check_port if device else '' }}">
+            </div>
+            
+            <div id="path_field" class="mb-3" style="display: none;">
+                <label for="check_http_path" class="form-label">HTTP Path</label>
+                <input type="text" class="form-control" id="check_http_path" name="check_http_path" value="{{ device.check_http_path if device else '/' }}">
+                <small class="text-muted">Default: /</small>
+            </div>
+            
+            <div id="snmp_field" class="mb-3" style="display: none;">
+                <label for="check_community" class="form-label">SNMP Community</label>
+                <input type="text" class="form-control" id="check_community" name="check_community" value="{{ device.check_community if device else 'public' }}">
+                
+                <label for="snmp_oid" class="form-label mt-2">SNMP OID</label>
+                <input type="text" class="form-control" id="snmp_oid" name="snmp_oid" value="{{ device.snmp_oid if device else '1.3.6.1.2.1.1.1.0' }}">
+                <small class="text-muted">Default: sysDescr OID</small>
+            </div>
+            
+            <div class="mb-3">
+                <label for="check_interval" class="form-label">Check Interval (seconds)</label>
+                <input type="number" class="form-control" id="check_interval" name="check_interval" value="{{ device.check_interval if device else 60 }}">
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="enabled" name="enabled" {% if not device or device.enabled %}checked{% endif %}>
+                <label class="form-check-label" for="enabled">Enabled</label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Save Device</button>
+            <a href="{{ url_for('devices') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleMethodFields() {
+    const method = document.getElementById('check_method').value;
+    document.getElementById('port_field').style.display = (method === 'tcp' || method === 'http' || method === 'https') ? 'block' : 'none';
+    document.getElementById('path_field').style.display = (method === 'http' || method === 'https') ? 'block' : 'none';
+    document.getElementById('snmp_field').style.display = method === 'snmp' ? 'block' : 'none';
+}
+
+toggleMethodFields();
+</script>
+{% endblock %}

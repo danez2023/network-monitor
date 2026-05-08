@@ -1,0 +1,70 @@
+{# templates/settings.html #}
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h2><i class="bi bi-gear"></i> System Settings</h2>
+<hr>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Cloud Forwarding Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="cloud_endpoint_url" class="form-label">Cloud Endpoint URL</label>
+                        <input type="url" class="form-control" id="cloud_endpoint_url" name="cloud_endpoint_url" 
+                               value="{{ cloud_endpoint_url }}" placeholder="https://api.example.com/status">
+                        <small class="text-muted">Device status will be forwarded to this URL</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cloud_method" class="form-label">HTTP Method</label>
+                        <select class="form-control" id="cloud_method" name="cloud_method">
+                            <option value="POST" {% if cloud_method == 'POST' %}selected{% endif %}>POST</option>
+                            <option value="GET" {% if cloud_method == 'GET' %}selected{% endif %}>GET</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cloud_auth_token" class="form-label">Authentication Token (Bearer)</label>
+                        <input type="text" class="form-control" id="cloud_auth_token" name="cloud_auth_token" 
+                               value="{{ cloud_auth_token }}" placeholder="Optional: token for authentication">
+                        <small class="text-muted">Will be sent as Authorization: Bearer &lt;token&gt;</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Usage Information</h5>
+            </div>
+            <div class="card-body">
+                <h6>Cloud Forwarding Payload Example:</h6>
+                <pre class="bg-light p-3 rounded">
+{
+  "device_id": 1,
+  "device_name": "Main Radio",
+  "device_type": "radio",
+  "ip_address": "192.168.1.100",
+  "status": "up",
+  "response_time_ms": 12.5,
+  "error_message": null,
+  "timestamp": "2024-01-15T10:30:00Z",
+  "check_method": "icmp"
+}
+                </pre>
+                <p class="text-muted small">
+                    Status is forwarded only when device status changes (up → down or down → up).
+                    For GET method, parameters are sent as query string.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

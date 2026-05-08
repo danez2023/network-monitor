@@ -1,0 +1,68 @@
+{# templates/logs.html #}
+{% extends "base.html" %}
+{% block title %}Status Logs{% endblock %}
+{% block content %}
+<h2><i class="bi bi-journal-text"></i> Status Logs</h2>
+<hr>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <select class="form-control" id="deviceFilter" onchange="filterByDevice()">
+            <option value="">All Devices</option>
+            {% for device in devices %}
+            <option value="{{ device.id }}" {% if selected_device == device.id %}selected{% endif %}>
+                {{ device.name }} ({{ device.ip_address }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Device</th>
+                <th>Status</th>
+                <th>Response Time</th>
+                <th>Error Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs.items %}
+            <tr>
+                <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ log.device.name }} ({{ log.device.ip_address }})</td>
+                <td>
+                    <span class="status-{{ log.status }} fw-bold">
+                        {{ log.status.upper() }}
+                    </span>
+                </td>
+                <td>{% if log.response_time %}{{ "%.2f"|format(log.response_time) }} ms{% else %}N/A{% endif %}</td>
+                <td class="text-muted small">{{ log.error_message or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<nav>
+    <ul class="pagination">
+        {% if logs.has_prev %}
+        <li class="page-item"><a class="page-link" href="?page={{ logs.prev_num }}&device_id={{ selected_device }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ logs.page }} of {{ logs.pages }}</span></li>
+        {% if logs.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ logs.next_num }}&device_id={{ selected_device }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+<script>
+function filterByDevice() {
+    const deviceId = document.getElementById('deviceFilter').value;
+    window.location.href = `/logs?device_id=${deviceId}`;
+}
+</script>
+{% endblock %}
