@@ -6,5 +6,5 @@ Flask-Bcrypt==1.0.1
 APScheduler==3.10.4
 requests==2.31.0
 ping3==4.0.4
-pysnmp==6.0.2
+pysnmp==7.1.26
 python-dotenv==1.0.0
